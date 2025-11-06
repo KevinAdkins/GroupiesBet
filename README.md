@@ -1,2 +1,2 @@
-GroupiesBet LIVE team props for college basketball and the NBA. A discord bot that tells you the live props no matter which point of the match. To get started: !commands
+GroupiesBet LIVE team props for college basketball and the NBA. A discord bot that tells you the live props no matter which point of the match. This is the code of my both minus any sensitve API Tokens, this is just a way to show case my work and document for anyone curiosu to see it. Also provides as a skeleton if anyone else wanted to make a simillar one as well.
 This also helped me practie Git by only interacting with this repo from the terminal in VisualStudio Code
