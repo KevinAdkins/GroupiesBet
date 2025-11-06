@@ -29,7 +29,18 @@ BASE_URL = "https://api.the-odds-api.com/v4/sports/basketball/odds"
 async def send_long_message(channel: discord.abc.Messageable, text: str):
     """Send text split into <=2000 char chunks (Discord limit)."""
     if not text:  # guard against empty strings
-        text = "No data available." 
+        text = "No data available."
+
+    if text.startswith("```") and text.endswith("```"): 
+        body = text[3:-3]
+        # 1900 leaves room to re-add ``` on each chunk without hitting 2000
+        while body:
+            chunk = body[:1900]
+            await channel.send(f"```{chunk}```")  # wrap each chunk in its own code fence
+            body = body[1900:]
+        return
+
+    # plain-text splitting 
     while text:
         await channel.send(text[:2000])
         text = text[2000:]
