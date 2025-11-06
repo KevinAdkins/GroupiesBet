@@ -126,19 +126,8 @@ async def on_message(message: discord.Message):
     if content.lower() == "!ping":
         return await message.channel.send("Pong!")
 
-    if content.lower() == "!luke":
-        return await message.channel.send("He a bitch ong :sob:! ")
-
-    if content.lower() == "!clara":
-        return await message.channel.send(
-            "FUCK YOU! is what I would say if you weren't the most angelic woman around ever!"
-        )
-
-    if content.lower() == "!song":
-        return await message.channel.send("This shit hard asf :fire:!")
-
     if content.lower() == "!commands":
-        return await message.channel.send("ping, luke, clara, nba_odds, college_odds!")
+        return await message.channel.send("ping, nba_odds, college_odds!")
 
     if content.lower() == "!odds":
         msg = get_all_basketball_odds()
