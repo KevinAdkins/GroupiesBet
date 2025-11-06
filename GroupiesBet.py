@@ -78,7 +78,7 @@ def _fetch_odds_raw(sport_url=BASE_URL):  # parameter for specific sport endpoin
         return None, "Odds API returned invalid JSON."
 
 # parse commence_time safely and localize to America/Chicago
-def _parse_start(ts: str) -> datetime:  # NEW
+def _parse_start(ts: str) -> datetime:
     """Convert ISO timestamp from API to timezone-aware datetime (UTC).""" 
     return datetime.fromisoformat(ts.replace("Z", "+00:00"))
 
@@ -216,8 +216,8 @@ async def on_message(message: discord.Message):
         return await send_long_message(message.channel, msg)
 
     # calendars (3-day window). Shows LIVE + upcoming with local times (America/Chicago).
-    if content.lower() == "!games":  # NEW
-        msg = get_all_games_window(days=3)  # NEW
+    if content.lower() == "!games":
+        msg = get_all_games_window(days=3)
         return await send_long_message(message.channel, msg)
 
     if content.lower() == "!nba_games":
