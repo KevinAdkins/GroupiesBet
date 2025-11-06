@@ -2,6 +2,8 @@ import os
 import discord
 import requests
 from dotenv import load_dotenv  # use dotenv to read .env
+from datetime import datetime, timezone, timedelta
+from zoneinfo import ZoneInfo
 
 load_dotenv()  # load variables from a .env file in this folder
 
@@ -75,6 +77,58 @@ def _fetch_odds_raw(sport_url=BASE_URL):  # parameter for specific sport endpoin
     except ValueError:
         return None, "Odds API returned invalid JSON."
 
+# parse commence_time safely and localize to America/Chicago
+def _parse_start(ts: str) -> datetime:  # NEW
+    """Convert ISO timestamp from API to timezone-aware datetime (UTC).""" 
+    return datetime.fromisoformat(ts.replace("Z", "+00:00"))
+
+def _format_local(dt_utc: datetime) -> str:
+    """Format a UTC datetime in America/Chicago for display."""
+    local = dt_utc.astimezone(ZoneInfo("America/Chicago"))
+    return local.strftime("%a %b %d, %I:%M %p")
+
+def _filter_and_group_by_day(data, days_ahead: int = 3, title: str = "Games"):
+    """
+    Build a compact schedule for today + next N-1 days.
+    Shows 'LIVE' for games that already started; otherwise shows local start time.
+    """
+    if not data:
+        return "No games found."
+
+    now = datetime.now(timezone.utc)
+    end = now + timedelta(days=days_ahead)
+
+    # group: date_key -> list of (label, away, home)
+    buckets = {}
+    for g in data:
+        ts = g.get("commence_time")
+        if not ts:
+            continue
+        start = _parse_start(ts)
+        if start > end:
+            continue
+
+        away = g.get("away_team", "Away")
+        home = g.get("home_team", "Home")
+
+        label = "LIVE" if start <= now else _format_local(start)
+        day_key = _format_local(start).split(",")[0]  # e.g., "Thu" 
+
+        buckets.setdefault(day_key, []).append((label, away, home))
+
+    if not buckets:
+        return "No games within the next 3 days."
+
+    # render nicely with day headers
+    lines = [f"```{title} (Today + 2 days)"]
+    for day in buckets:
+        lines.append(f"\n=== {day} ===")
+        for label, away, home in buckets[day]:
+            prefix = "🔴" if label == "LIVE" else "🕒"
+            lines.append(f"{prefix} {away} @ {home} — {label}")
+    lines.append("```")
+    return "\n".join(lines)
+
 def get_all_basketball_odds() -> str:
     data, err = _fetch_odds_raw()
     if err:
@@ -86,7 +140,7 @@ def get_all_basketball_odds() -> str:
 def get_nba_odds() -> str:
     # use specific NBA endpoint instead of team-name filtering
     nba_url = "https://api.the-odds-api.com/v4/sports/basketball_nba/odds"  # direct NBA odds endpoint
-    data, err = _fetch_odds_raw(nba_url)  # NEW: call with NBA URL
+    data, err = _fetch_odds_raw(nba_url)  # call with NBA URL
     if err:
         return f"Error fetching NBA odds: {err}"
     if not data:
@@ -98,15 +152,35 @@ def get_nba_odds() -> str:
 def get_college_odds() -> str:
     # use specific College Basketball endpoint instead of team-name filtering
     college_url = "https://api.the-odds-api.com/v4/sports/basketball_ncaab/odds"  # direct NCAA odds endpoint
-    data, err = _fetch_odds_raw(college_url)  # NEW: call with NCAA URL
+    data, err = _fetch_odds_raw(college_url)  # call with NCAA URL
     if err:
         return f"Error fetching College Basketball odds: {err}"
     if not data:
         return "No live College Basketball games or odds available right now."
 
-    # no team filtering; endpoint already returns only NCAA games, this beats previously hardcoding the team names
+    # no team filtering; endpoint already returns only NCAA games
     return _render_games(data, "College Basketball Odds (US Only):")  # render NCAA data directly
 
+# schedule helpers (3-day window)
+def get_all_games_window(days: int = 3) -> str:
+    data, err = _fetch_odds_raw()  # all basketball
+    if err:
+        return f"Error fetching games: {err}"
+    return _filter_and_group_by_day(data, days_ahead=days, title="Basketball Schedule")
+
+def get_nba_games_window(days: int = 3) -> str:
+    url = "https://api.the-odds-api.com/v4/sports/basketball_nba/odds" 
+    data, err = _fetch_odds_raw(url) 
+    if err:
+        return f"Error fetching NBA games: {err}"
+    return _filter_and_group_by_day(data, days_ahead=days, title="NBA Schedule")
+
+def get_college_games_window(days: int = 3) -> str:
+    url = "https://api.the-odds-api.com/v4/sports/basketball_ncaab/odds"
+    data, err = _fetch_odds_raw(url)
+    if err:
+        return f"Error fetching College games: {err}"
+    return _filter_and_group_by_day(data, days_ahead=days, title="College Basketball Schedule")
 
 # Events
 @client.event
@@ -127,7 +201,7 @@ async def on_message(message: discord.Message):
         return await message.channel.send("Pong!")
 
     if content.lower() == "!commands":
-        return await message.channel.send("ping, nba_odds, college_odds!")
+        return await message.channel.send("ping, games, nba_games, college_games, nba_odds, college_odds!")
 
     if content.lower() == "!odds":
         msg = get_all_basketball_odds()
@@ -140,6 +214,19 @@ async def on_message(message: discord.Message):
     if content.lower() == "!college_odds":
         msg = get_college_odds()
         return await send_long_message(message.channel, msg)
+
+    # calendars (3-day window). Shows LIVE + upcoming with local times (America/Chicago).
+    if content.lower() == "!games":  # NEW
+        msg = get_all_games_window(days=3)  # NEW
+        return await send_long_message(message.channel, msg)
+
+    if content.lower() == "!nba_games":
+        msg = get_nba_games_window(days=3) 
+        return await send_long_message(message.channel, msg)
+
+    if content.lower() == "!college_games":
+        msg = get_college_games_window(days=3) 
+        return await send_long_message(message.channel, msg) 
 
 # Start the client
 client.run(DISCORD_TOKEN)
