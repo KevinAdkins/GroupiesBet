@@ -204,38 +204,38 @@ async def on_message(message: discord.Message):
         return
 
     content = (message.content or "").strip()
-    if not content.startswith("!"):
+    if not content.startswith("!G"):
         return
 
     # commands
-    if content.lower() == "!ping":
+    if content.lower() == "!G ping":
         return await message.channel.send("Pong!")
 
-    if content.lower() == "!commands":
-        return await message.channel.send("ping, games, nba_games, college_games, nba_odds, college_odds!")
+    if content.lower() == "!G commands":
+        return await message.channel.send("ping, games, nba_games, college_games, nba_odds, college_odds! (make sure to add a space between !G and the command you run)")
 
-    if content.lower() == "!odds":
+    if content.lower() == "!G odds":
         msg = get_all_basketball_odds()
         return await send_long_message(message.channel, msg)  # use splitter helper
 
-    if content.lower() == "!nba_odds":
+    if content.lower() == "!G nba_odds":
         msg = get_nba_odds()
         return await send_long_message(message.channel, msg)
 
-    if content.lower() == "!college_odds":
+    if content.lower() == "!G college_odds":
         msg = get_college_odds()
         return await send_long_message(message.channel, msg)
 
     # calendars (3-day window). Shows LIVE + upcoming with local times (America/Chicago).
-    if content.lower() == "!games":
+    if content.lower() == "!G games":
         msg = get_all_games_window(days=3)
         return await send_long_message(message.channel, msg)
 
-    if content.lower() == "!nba_games":
+    if content.lower() == "!G nba_games":
         msg = get_nba_games_window(days=3) 
         return await send_long_message(message.channel, msg)
 
-    if content.lower() == "!college_games":
+    if content.lower() == "!G college_games":
         msg = get_college_games_window(days=3) 
         return await send_long_message(message.channel, msg) 
 
